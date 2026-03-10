@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Tracker</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        
+        /* Layout */
+        .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+        @media (max-width: 768px) {
+            .app { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .sidebar.open { display: block; position: fixed; left: 0; top: 0; bottom: 0; width: 260px; z-index: 100; background: #0f0f1a; }
+            .mobile-header { display: flex !important; }
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            background: rgba(0,0,0,0.3);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 20px 0;
+            overflow-y: auto;
+            max-height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        .logo { padding: 0 20px 20px; font-size: 1.3em; font-weight: 700; color: #64b5f6; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; }
+        .nav-section { padding: 0 12px; margin-bottom: 20px; }
+        .nav-title { font-size: 11px; text-transform: uppercase; color: #666; padding: 0 8px; margin-bottom: 8px; letter-spacing: 1px; }
+        .nav-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s; font-size: 14px; color: #aaa; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-item.active { background: rgba(100,181,246,0.2); color: #64b5f6; }
+        .nav-count { font-size: 11px; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; }
+        .nav-item.active .nav-count { background: rgba(100,181,246,0.3); }
+        
+        .subcat-list { margin-top: 5px; padding-left: 10px; }
+        .subcat-item { padding: 6px 12px; font-size: 13px; color: #888; cursor: pointer; border-radius: 6px; display: flex; justify-content: space-between; }
+        .subcat-item:hover { background: rgba(255,255,255,0.05); color: #ccc; }
+        .subcat-item.active { color: #81c784; }
+        
+        /* Main */
+        .main { padding: 20px; overflow-y: auto; }
+        .mobile-header { display: none; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .menu-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+        
+        /* Search */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-input { flex: 1; padding: 14px 20px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; font-size: 15px; }
+        .search-input:focus { outline: none; border-color: #64b5f6; }
+        .search-input::placeholder { color: #555; }
+        .refresh-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .refresh-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        
+        /* Tags */
+        .tag-section { margin-bottom: 20px; }
+        .tag-title { font-size: 12px; color: #666; margin-bottom: 10px; }
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { padding: 5px 12px; background: rgba(129,199,132,0.15); border: 1px solid rgba(129,199,132,0.3); border-radius: 15px; font-size: 12px; color: #81c784; cursor: pointer; transition: all 0.15s; }
+        .tag:hover { background: rgba(129,199,132,0.25); }
+        .tag.active { background: #81c784; color: #1a1a2e; }
+        
+        /* Table */
+        .table-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: rgba(100,181,246,0.1); padding: 14px 15px; text-align: left; font-weight: 600; color: #64b5f6; white-space: nowrap; cursor: pointer; position: sticky; top: 0; }
+        th:hover { background: rgba(100,181,246,0.2); }
+        td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+        tr:hover { background: rgba(255,255,255,0.03); }
+        
+        .cell-id { font-family: 'SF Mono', Monaco, monospace; color: #81c784; font-weight: 600; white-space: nowrap; }
+        .cell-subcat { color: #f0ad4e; font-size: 12px; }
+        .cell-age { color: #aaa; white-space: nowrap; }
+        .cell-modality { color: #64b5f6; font-size: 12px; }
+        .cell-date { color: #888; font-size: 12px; white-space: nowrap; }
+        .cell-finding { max-width: 500px; line-height: 1.5; }
+        .highlight { background: rgba(255,235,59,0.3); padding: 0 3px; border-radius: 3px; }
+        
+        .loading, .empty { text-align: center; padding: 60px 20px; color: #666; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(100,181,246,0.2); border-top-color: #64b5f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-icon { font-size: 48px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar" id="sidebar">
+            <div class="logo">📋 Case Tracker</div>
+            <div class="nav-section">
+                <div class="nav-title">分頁</div>
+                <div id="sheetNav"></div>
+            </div>
+            <div class="nav-section" id="subcatSection" style="display:none;">
+                <div class="nav-title">小分類</div>
+                <div class="subcat-list" id="subcatNav"></div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">統計</div>
+                <div style="padding: 0 12px; font-size: 13px; color: #888;">
+                    <div style="margin-bottom: 8px;">總案例: <strong id="totalCount" style="color:#64b5f6;">0</strong></div>
+                    <div>目前顯示: <strong id="filteredCount" style="color:#81c784;">0</strong></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main">
+            <div class="mobile-header">
+                <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                <span style="font-size: 1.2em; font-weight: 600; color: #64b5f6;">📋 Case Tracker</span>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋 ID、診斷、關鍵字...">
+                <button class="refresh-btn" onclick="refreshData()">↻ 重新整理</button>
+            </div>
+            
+            <div class="tag-section" id="tagSection" style="display:none;">
+                <div class="tag-title">🏷️ 常見診斷（點擊篩選）</div>
+                <div class="tag-cloud" id="tagCloud"></div>
+            </div>
+            
+            <div class="loading" id="loading"><div class="spinner"></div>載入資料中...</div>
+            
+            <div class="table-container" id="tableContainer" style="display:none;">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th onclick="sortBy('subcat')">分類</th>
+                                <th onclick="sortBy('id')">ID</th>
+                                <th onclick="sortBy('age')">Age/Sex</th>
+                                <th onclick="sortBy('modality')">Modality</th>
+                                <th onclick="sortBy('date')">Date</th>
+                                <th onclick="sortBy('finding')">Finding</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="empty" id="emptyState" style="display:none;">
+                <div class="empty-icon">🔍</div>
+                <div>沒有符合的資料</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+var SHEET_ID = '1lmW4oGxpf3-W51tB2f2LXeZXadYAcnSdVPaiOiOHni8';
+var SHEETS = [
+    { name: 'MSK', gid: 0 },
+    { name: 'MSK-tumor', gid: 962179649 },
+    { name: 'MSK-spine', gid: 1730152768 },
+    { name: 'MSK-knee', gid: 490739540 },
+    { name: 'MSK procedure', gid: 1382277388 },
+    { name: 'NR', gid: 483962865 },
+    { name: 'CH GI', gid: 959126322 },
+    { name: 'BMD', gid: 1256805640 },
+    { name: 'C spine oblique', gid: 130096719 },
+    { name: 'ER x ray', gid: 505958270 },
+    { name: 'Difficult TAE', gid: 719488707 },
+    { name: 'Bone age', gid: 1886063580 }
+];
+
+var allData = {};
+var currentSheet = 'MSK';
+var currentSubcat = '';
+var currentTag = '';
+var searchTerm = '';
+var sortCol = '';
+var sortAsc = true;
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderSheetNav();
+    loadAllSheets();
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        searchTerm = e.target.value.toLowerCase();
+        renderTable();
+    });
+});
+
+function getCSVUrl(gid) {
+    return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/export?format=csv&gid=' + gid;
+}
+
+function loadAllSheets() {
+    var loaded = 0;
+    SHEETS.forEach(function(sheet) {
+        fetch(getCSVUrl(sheet.gid))
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                allData[sheet.name] = parseCSV(text);
+                loaded++;
+                if (loaded === SHEETS.length) onAllLoaded();
+            })
+            .catch(function(err) {
+                console.error('Error loading ' + sheet.name, err);
+                loaded++;
+                if (loaded === SHEETS.length) onAllLoaded();
+            });
+    });
+}
+
+function refreshData() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('tableContainer').style.display = 'none';
+    allData = {};
+    loadAllSheets();
+}
+
+function onAllLoaded() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('tableContainer').style.display = 'block';
+    updateTotalCount();
+    renderSheetNav();
+    selectSheet('MSK');
+}
+
+function parseCSV(text) {
+    var lines = text.split('\n');
+    var data = [];
+    var currentSubcat = '';
+    
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        
+        var row = parseCSVLine(line);
+        var nonEmpty = row.filter(function(v) { return v && v.trim(); });
+        if (nonEmpty.length === 0) continue;
+        
+        // Subcategory header
+        if (nonEmpty.length === 1 && !/^[A-Z]?\d{5,7}$/.test(nonEmpty[0])) {
+            currentSubcat = nonEmpty[0];
+            continue;
+        }
+        
+        var item = { subcat: currentSubcat, id: '', age: '', modality: '', date: '', finding: '' };
+        var findings = [];
+        
+        for (var j = 0; j < row.length; j++) {
+            var val = row[j] ? row[j].trim() : '';
+            if (!val) continue;
+            
+            if (!item.id && /^[A-Z]?\d{5,7}$/.test(val)) item.id = val;
+            else if (!item.age && /^\d{1,3}[MmFf]$/.test(val)) item.age = val;
+            else if (!item.age && /^[男女]\d{1,3}$/.test(val)) item.age = val;
+            else if (!item.date && /^\d{4}-\d{2}-\d{2}/.test(val)) item.date = val.substring(0, 10);
+            else if (!item.modality && val.length < 25 && /^(MR|CT|X-?ray|Angio|US|PET|.*[Ss]pine)/i.test(val)) item.modality = val;
+            else findings.push(val);
+        }
+        
+        item.finding = findings.join(' | ');
+        if (item.id || item.finding) data.push(item);
+    }
+    return data;
+}
+
+function parseCSVLine(line) {
+    var result = [], current = '', inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+        var c = line[i];
+        if (c === '"') inQuotes = !inQuotes;
+        else if (c === ',' && !inQuotes) { result.push(current); current = ''; }
+        else current += c;
+    }
+    result.push(current);
+    return result;
+}
+
+function renderSheetNav() {
+    var html = '';
+    SHEETS.forEach(function(sheet) {
+        var count = allData[sheet.name] ? allData[sheet.name].length : 0;
+        var active = sheet.name === currentSheet ? 'active' : '';
+        html += '<div class="nav-item ' + active + '" onclick="selectSheet(\'' + sheet.name + '\')"><span>' + sheet.name + '</span><span class="nav-count">' + count + '</span></div>';
+    });
+    document.getElementById('sheetNav').innerHTML = html;
+}
+
+function selectSheet(name) {
+    currentSheet = name;
+    currentSubcat = '';
+    currentTag = '';
+    renderSheetNav();
+    renderSubcatNav();
+    renderTagCloud();
+    renderTable();
+}
+
+function renderSubcatNav() {
+    var data = allData[currentSheet] || [];
+    var subcats = {};
+    data.forEach(function(item) { if (item.subcat) subcats[item.subcat] = (subcats[item.subcat] || 0) + 1; });
+    
+    var keys = Object.keys(subcats);
+    if (keys.length === 0) { document.getElementById('subcatSection').style.display = 'none'; return; }
+    
+    document.getElementById('subcatSection').style.display = 'block';
+    var html = '<div class="subcat-item ' + (currentSubcat === '' ? 'active' : '') + '" onclick="selectSubcat(\'\')">全部</div>';
+    keys.forEach(function(key) {
+        html += '<div class="subcat-item ' + (currentSubcat === key ? 'active' : '') + '" onclick="selectSubcat(\'' + key.replace(/'/g, "\\'") + '\')"><span>' + key + '</span><span>' + subcats[key] + '</span></div>';
+    });
+    document.getElementById('subcatNav').innerHTML = html;
+}
+
+function selectSubcat(subcat) { currentSubcat = subcat; renderSubcatNav(); renderTable(); }
+
+function renderTagCloud() {
+    var data = allData[currentSheet] || [];
+    var tags = {};
+    data.forEach(function(item) {
+        if (!item.finding) return;
+        item.finding.toLowerCase().split(/[\s|,]+/).forEach(function(w) {
+            w = w.trim();
+            if (w.length > 3 && w.length < 25 && !/^\d+$/.test(w) && !/^(the|and|with|from|for|that|this|nan)$/.test(w)) {
+                tags[w] = (tags[w] || 0) + 1;
+            }
+        });
+    });
+    
+    var sorted = Object.keys(tags).filter(function(k) { return tags[k] >= 2; }).sort(function(a, b) { return tags[b] - tags[a]; }).slice(0, 12);
+    if (sorted.length === 0) { document.getElementById('tagSection').style.display = 'none'; return; }
+    
+    document.getElementById('tagSection').style.display = 'block';
+    var html = '';
+    sorted.forEach(function(tag) {
+        html += '<span class="tag ' + (currentTag === tag ? 'active' : '') + '" onclick="selectTag(\'' + tag + '\')">' + tag + ' (' + tags[tag] + ')</span>';
+    });
+    document.getElementById('tagCloud').innerHTML = html;
+}
+
+function selectTag(tag) { currentTag = currentTag === tag ? '' : tag; renderTagCloud(); renderTable(); }
+
+function getFilteredData() {
+    var data = allData[currentSheet] || [];
+    return data.filter(function(item) {
+        if (currentSubcat && item.subcat !== currentSubcat) return false;
+        if (currentTag && item.finding.toLowerCase().indexOf(currentTag) === -1) return false;
+        if (searchTerm) {
+            var text = (item.id + ' ' + item.subcat + ' ' + item.age + ' ' + item.modality + ' ' + item.finding).toLowerCase();
+            if (text.indexOf(searchTerm) === -1) return false;
+        }
+        return true;
+    });
+}
+
+function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+}
+
+function renderTable() {
+    var data = getFilteredData();
+    if (sortCol) {
+        data.sort(function(a, b) {
+            var va = a[sortCol] || '', vb = b[sortCol] || '';
+            var cmp = va.localeCompare(vb, 'zh-TW', { numeric: true });
+            return sortAsc ? cmp : -cmp;
+        });
+    }
+    
+    document.getElementById('filteredCount').textContent = data.length;
+    
+    if (data.length === 0) {
+        document.getElementById('tableContainer').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+    }
+    
+    document.getElementById('tableContainer').style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+    
+    var html = '';
+    data.forEach(function(item) {
+        var finding = item.finding;
+        if (searchTerm) {
+            var regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            finding = finding.replace(regex, '<span class="highlight">$1</span>');
+        }
+        html += '<tr><td class="cell-subcat">' + (item.subcat || '-') + '</td><td class="cell-id">' + (item.id || '-') + '</td><td class="cell-age">' + (item.age || '-') + '</td><td class="cell-modality">' + (item.modality || '-') + '</td><td class="cell-date">' + (item.date || '-') + '</td><td class="cell-finding">' + (finding || '-') + '</td></tr>';
+    });
+    document.getElementById('tableBody').innerHTML = html;
+}
+
+function updateTotalCount() {
+    var total = 0;
+    Object.keys(allData).forEach(function(key) { total += allData[key].length; });
+    document.getElementById('totalCount').textContent = total;
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+</script>
+</body>
+</html>
