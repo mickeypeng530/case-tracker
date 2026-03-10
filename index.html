@@ -13,7 +13,6 @@
             color: #e0e0e0;
         }
         
-        /* Layout */
         .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
         @media (max-width: 768px) {
             .app { grid-template-columns: 1fr; }
@@ -22,7 +21,6 @@
             .mobile-header { display: flex !important; }
         }
         
-        /* Sidebar */
         .sidebar {
             background: rgba(0,0,0,0.3);
             border-right: 1px solid rgba(255,255,255,0.1);
@@ -46,12 +44,10 @@
         .subcat-item:hover { background: rgba(255,255,255,0.05); color: #ccc; }
         .subcat-item.active { color: #81c784; }
         
-        /* Main */
         .main { padding: 20px; overflow-y: auto; }
         .mobile-header { display: none; align-items: center; gap: 15px; margin-bottom: 20px; }
         .menu-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         
-        /* Search */
         .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
         .search-input { flex: 1; padding: 14px 20px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; font-size: 15px; }
         .search-input:focus { outline: none; border-color: #64b5f6; }
@@ -59,7 +55,6 @@
         .refresh-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         .refresh-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
         
-        /* Tags */
         .tag-section { margin-bottom: 20px; }
         .tag-title { font-size: 12px; color: #666; margin-bottom: 10px; }
         .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -67,7 +62,6 @@
         .tag:hover { background: rgba(129,199,132,0.25); }
         .tag.active { background: #81c784; color: #1a1a2e; }
         
-        /* Table */
         .table-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
         .table-scroll { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -84,10 +78,12 @@
         .cell-finding { max-width: 500px; line-height: 1.5; }
         .highlight { background: rgba(255,235,59,0.3); padding: 0 3px; border-radius: 3px; }
         
-        .loading, .empty { text-align: center; padding: 60px 20px; color: #666; }
+        .loading, .empty, .error { text-align: center; padding: 60px 20px; color: #666; }
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(100,181,246,0.2); border-top-color: #64b5f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .empty-icon { font-size: 48px; margin-bottom: 15px; }
+        .error { color: #e57373; }
+        .error-icon { font-size: 48px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -129,6 +125,11 @@
             
             <div class="loading" id="loading"><div class="spinner"></div>載入資料中...</div>
             
+            <div class="error" id="errorState" style="display:none;">
+                <div class="error-icon">⚠️</div>
+                <div id="errorMsg">載入失敗</div>
+            </div>
+            
             <div class="table-container" id="tableContainer" style="display:none;">
                 <div class="table-scroll">
                     <table>
@@ -155,7 +156,9 @@
     </div>
 
 <script>
-var SHEET_ID = '1lmW4oGxpf3-W51tB2f2LXeZXadYAcnSdVPaiOiOHni8';
+// 使用發布後的 URL 格式
+var PUBLISHED_ID = '2PACX-1vSF1YW3PjcvIZrNx39H-n6X3IGgfrcdIZCTJ2E5PRV-IhYj-I66V13A4fI_DWuJvp2bF2vOImWc4mrF';
+
 var SHEETS = [
     { name: 'MSK', gid: 0 },
     { name: 'MSK-tumor', gid: 962179649 },
@@ -189,23 +192,29 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function getCSVUrl(gid) {
-    return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/export?format=csv&gid=' + gid;
+    return 'https://docs.google.com/spreadsheets/d/e/' + PUBLISHED_ID + '/pub?gid=' + gid + '&single=true&output=csv';
 }
 
 function loadAllSheets() {
     var loaded = 0;
+    var errors = 0;
+    
     SHEETS.forEach(function(sheet) {
         fetch(getCSVUrl(sheet.gid))
-            .then(function(r) { return r.text(); })
+            .then(function(r) { 
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.text(); 
+            })
             .then(function(text) {
                 allData[sheet.name] = parseCSV(text);
                 loaded++;
-                if (loaded === SHEETS.length) onAllLoaded();
+                if (loaded + errors === SHEETS.length) onAllLoaded();
             })
             .catch(function(err) {
                 console.error('Error loading ' + sheet.name, err);
-                loaded++;
-                if (loaded === SHEETS.length) onAllLoaded();
+                allData[sheet.name] = [];
+                errors++;
+                if (loaded + errors === SHEETS.length) onAllLoaded();
             });
     });
 }
@@ -213,12 +222,23 @@ function loadAllSheets() {
 function refreshData() {
     document.getElementById('loading').style.display = 'block';
     document.getElementById('tableContainer').style.display = 'none';
+    document.getElementById('errorState').style.display = 'none';
     allData = {};
     loadAllSheets();
 }
 
 function onAllLoaded() {
     document.getElementById('loading').style.display = 'none';
+    
+    var totalItems = 0;
+    Object.keys(allData).forEach(function(key) { totalItems += allData[key].length; });
+    
+    if (totalItems === 0) {
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorMsg').textContent = '無法載入資料，請確認 Google Sheets 已發布';
+        return;
+    }
+    
     document.getElementById('tableContainer').style.display = 'block';
     updateTotalCount();
     renderSheetNav();
