@@ -39,21 +39,22 @@
         .nav-count { font-size: 11px; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; }
         .nav-item.active .nav-count { background: rgba(100,181,246,0.3); }
         
-        .subcat-list { margin-top: 5px; padding-left: 10px; }
-        .subcat-item { padding: 6px 12px; font-size: 13px; color: #888; cursor: pointer; border-radius: 6px; display: flex; justify-content: space-between; }
-        .subcat-item:hover { background: rgba(255,255,255,0.05); color: #ccc; }
-        .subcat-item.active { color: #81c784; }
+        .subcat-list { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px; padding: 0 8px; }
+        .subcat-item { padding: 5px 10px; font-size: 12px; color: #888; cursor: pointer; border-radius: 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: all 0.15s; }
+        .subcat-item:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
+        .subcat-item.active { background: rgba(240,173,78,0.2); color: #f0ad4e; border-color: #f0ad4e; }
         
         .main { padding: 20px; overflow-y: auto; }
         .mobile-header { display: none; align-items: center; gap: 15px; margin-bottom: 20px; }
         .menu-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         
-        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-input { flex: 1; padding: 14px 20px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; font-size: 15px; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 200px; padding: 12px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; }
         .search-input:focus { outline: none; border-color: #64b5f6; }
         .search-input::placeholder { color: #555; }
-        .refresh-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; }
-        .refresh-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+        .btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .btn.active { background: rgba(255,193,7,0.2); color: #ffc107; border-color: #ffc107; }
         
         .tag-section { margin-bottom: 20px; }
         .tag-title { font-size: 12px; color: #666; margin-bottom: 10px; }
@@ -65,17 +66,26 @@
         .table-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
         .table-scroll { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: rgba(100,181,246,0.1); padding: 14px 15px; text-align: left; font-weight: 600; color: #64b5f6; white-space: nowrap; cursor: pointer; position: sticky; top: 0; }
+        th { background: rgba(100,181,246,0.1); padding: 12px 10px; text-align: left; font-weight: 600; color: #64b5f6; white-space: nowrap; cursor: pointer; position: sticky; top: 0; }
         th:hover { background: rgba(100,181,246,0.2); }
-        td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
         tr:hover { background: rgba(255,255,255,0.03); }
+        tr.tracked { background: rgba(255,193,7,0.08); }
+        tr.tracked:hover { background: rgba(255,193,7,0.12); }
+        
+        .cell-track { text-align: center; }
+        .track-btn { background: none; border: none; font-size: 18px; cursor: pointer; opacity: 0.4; transition: all 0.15s; padding: 5px; }
+        .track-btn:hover { opacity: 1; transform: scale(1.2); }
+        .track-btn.active { opacity: 1; }
+        .track-btn.saving { animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         
         .cell-id { font-family: 'SF Mono', Monaco, monospace; color: #81c784; font-weight: 600; white-space: nowrap; }
-        .cell-subcat { color: #f0ad4e; font-size: 12px; }
+        .cell-subcat { color: #f0ad4e; font-size: 12px; max-width: 100px; }
         .cell-age { color: #aaa; white-space: nowrap; }
         .cell-modality { color: #64b5f6; font-size: 12px; }
         .cell-date { color: #888; font-size: 12px; white-space: nowrap; }
-        .cell-finding { max-width: 500px; line-height: 1.5; }
+        .cell-finding { max-width: 450px; line-height: 1.5; }
         .highlight { background: rgba(255,235,59,0.3); padding: 0 3px; border-radius: 3px; }
         
         .loading, .empty, .error { text-align: center; padding: 60px 20px; color: #666; }
@@ -83,13 +93,17 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .empty-icon { font-size: 48px; margin-bottom: 15px; }
         .error { color: #e57373; }
-        .error-icon { font-size: 48px; margin-bottom: 15px; }
+        
+        .sync-status { font-size: 11px; padding: 4px 8px; border-radius: 4px; margin-left: 10px; }
+        .sync-status.synced { background: rgba(129,199,132,0.2); color: #81c784; }
+        .sync-status.syncing { background: rgba(255,193,7,0.2); color: #ffc107; }
+        .sync-status.error { background: rgba(244,67,54,0.2); color: #e57373; }
     </style>
 </head>
 <body>
     <div class="app">
         <div class="sidebar" id="sidebar">
-            <div class="logo">📋 Case Tracker</div>
+            <div class="logo">📋 Case Tracker <span class="sync-status synced" id="syncStatus">✓ 同步</span></div>
             <div class="nav-section">
                 <div class="nav-title">分頁</div>
                 <div id="sheetNav"></div>
@@ -102,6 +116,7 @@
                 <div class="nav-title">統計</div>
                 <div style="padding: 0 12px; font-size: 13px; color: #888;">
                     <div style="margin-bottom: 8px;">總案例: <strong id="totalCount" style="color:#64b5f6;">0</strong></div>
+                    <div style="margin-bottom: 8px;">追蹤中: <strong id="trackedCount" style="color:#ffc107;">0</strong></div>
                     <div>目前顯示: <strong id="filteredCount" style="color:#81c784;">0</strong></div>
                 </div>
             </div>
@@ -115,7 +130,8 @@
             
             <div class="search-bar">
                 <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋 ID、診斷、關鍵字...">
-                <button class="refresh-btn" onclick="refreshData()">↻ 重新整理</button>
+                <button class="btn" id="trackFilterBtn" onclick="toggleTrackFilter()">⏳ 只看追蹤</button>
+                <button class="btn" onclick="refreshData()">↻ 重新整理</button>
             </div>
             
             <div class="tag-section" id="tagSection" style="display:none;">
@@ -126,7 +142,7 @@
             <div class="loading" id="loading"><div class="spinner"></div>載入資料中...</div>
             
             <div class="error" id="errorState" style="display:none;">
-                <div class="error-icon">⚠️</div>
+                <div class="empty-icon">⚠️</div>
                 <div id="errorMsg">載入失敗</div>
             </div>
             
@@ -135,9 +151,10 @@
                     <table>
                         <thead>
                             <tr>
+                                <th style="width:50px;">追蹤</th>
                                 <th onclick="sortBy('subcat')">分類</th>
                                 <th onclick="sortBy('id')">ID</th>
-                                <th onclick="sortBy('age')">Age/Sex</th>
+                                <th onclick="sortBy('age')">Age</th>
                                 <th onclick="sortBy('modality')">Modality</th>
                                 <th onclick="sortBy('date')">Date</th>
                                 <th onclick="sortBy('finding')">Finding</th>
@@ -156,7 +173,11 @@
     </div>
 
 <script>
-// 使用發布後的 URL 格式
+// ============ CONFIG ============
+var API_KEY = 'AIzaSyBoO5ZJql0WkBbgLF4DY_EjRV5Dp2Zx7Qs';
+var SPREADSHEET_ID = '1lmW4oGxpf3-W51tB2f2LXeZXadYAcnSdVPaiOiOHni8';
+var TRACKED_SHEET = 'Tracked';  // 追蹤名單存在這個分頁
+
 var PUBLISHED_ID = '2PACX-1vSF1YW3PjcvIZrNx39H-n6X3IGgfrcdIZCTJ2E5PRV-IhYj-I66V13A4fI_DWuJvp2bF2vOImWc4mrF';
 
 var SHEETS = [
@@ -174,16 +195,24 @@ var SHEETS = [
     { name: 'Bone age', gid: 1886063580 }
 ];
 
+// 從 Excel 匯入的初始追蹤名單
+var INITIAL_TRACKED = ['543115', 'C98752', '1403256', '1785464', '1792056', '1831609', '1806997', 'B74650', 'J34713', 'T74808', 'G30069', '1427341', '1708974', '1254120', 'B05986', '1102588', 'U28473', 'A82137', 'W76052'];
+
+// ============ STATE ============
 var allData = {};
+var trackedIds = [];
 var currentSheet = 'MSK';
 var currentSubcat = '';
 var currentTag = '';
 var searchTerm = '';
 var sortCol = '';
 var sortAsc = true;
+var showTrackedOnly = false;
 
+// ============ INIT ============
 document.addEventListener('DOMContentLoaded', function() {
     renderSheetNav();
+    loadTrackedFromSheet();
     loadAllSheets();
     document.getElementById('searchInput').addEventListener('input', function(e) {
         searchTerm = e.target.value.toLowerCase();
@@ -191,14 +220,109 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// ============ SYNC STATUS ============
+function setSyncStatus(status) {
+    var el = document.getElementById('syncStatus');
+    el.className = 'sync-status ' + status;
+    if (status === 'synced') el.textContent = '✓ 同步';
+    else if (status === 'syncing') el.textContent = '⟳ 同步中...';
+    else if (status === 'error') el.textContent = '✗ 錯誤';
+}
+
+// ============ TRACKED IDS (Google Sheets) ============
+function loadTrackedFromSheet() {
+    setSyncStatus('syncing');
+    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SPREADSHEET_ID + '/values/' + TRACKED_SHEET + '!A:A?key=' + API_KEY;
+    
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.values && data.values.length > 0) {
+                trackedIds = data.values.map(function(row) { return row[0]; }).filter(function(id) { return id; });
+                setSyncStatus('synced');
+            } else {
+                // 分頁是空的或不存在，使用初始名單並寫入
+                trackedIds = INITIAL_TRACKED.slice();
+                saveTrackedToSheet();
+            }
+            updateTrackedCount();
+            renderTable();
+        })
+        .catch(function(err) {
+            console.error('Error loading tracked:', err);
+            // 嘗試建立分頁或使用本地
+            trackedIds = INITIAL_TRACKED.slice();
+            setSyncStatus('error');
+            updateTrackedCount();
+        });
+}
+
+function saveTrackedToSheet() {
+    setSyncStatus('syncing');
+    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SPREADSHEET_ID + '/values/' + TRACKED_SHEET + '!A:A?valueInputOption=RAW&key=' + API_KEY;
+    
+    var values = trackedIds.map(function(id) { return [id]; });
+    
+    fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: values })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) {
+            console.error('Save error:', data.error);
+            setSyncStatus('error');
+        } else {
+            setSyncStatus('synced');
+        }
+    })
+    .catch(function(err) {
+        console.error('Save error:', err);
+        setSyncStatus('error');
+    });
+}
+
+function isTracked(id) {
+    return trackedIds.indexOf(id) !== -1;
+}
+
+function toggleTracked(id) {
+    var idx = trackedIds.indexOf(id);
+    if (idx === -1) {
+        trackedIds.push(id);
+    } else {
+        trackedIds.splice(idx, 1);
+    }
+    updateTrackedCount();
+    renderTable();
+    saveTrackedToSheet();
+}
+
+function updateTrackedCount() {
+    document.getElementById('trackedCount').textContent = trackedIds.length;
+}
+
+function toggleTrackFilter() {
+    showTrackedOnly = !showTrackedOnly;
+    var btn = document.getElementById('trackFilterBtn');
+    if (showTrackedOnly) {
+        btn.classList.add('active');
+        btn.textContent = '⏳ 顯示全部';
+    } else {
+        btn.classList.remove('active');
+        btn.textContent = '⏳ 只看追蹤';
+    }
+    renderTable();
+}
+
+// ============ DATA LOADING ============
 function getCSVUrl(gid) {
     return 'https://docs.google.com/spreadsheets/d/e/' + PUBLISHED_ID + '/pub?gid=' + gid + '&single=true&output=csv';
 }
 
 function loadAllSheets() {
     var loaded = 0;
-    var errors = 0;
-    
     SHEETS.forEach(function(sheet) {
         fetch(getCSVUrl(sheet.gid))
             .then(function(r) { 
@@ -208,13 +332,13 @@ function loadAllSheets() {
             .then(function(text) {
                 allData[sheet.name] = parseCSV(text);
                 loaded++;
-                if (loaded + errors === SHEETS.length) onAllLoaded();
+                if (loaded === SHEETS.length) onAllLoaded();
             })
             .catch(function(err) {
                 console.error('Error loading ' + sheet.name, err);
                 allData[sheet.name] = [];
-                errors++;
-                if (loaded + errors === SHEETS.length) onAllLoaded();
+                loaded++;
+                if (loaded === SHEETS.length) onAllLoaded();
             });
     });
 }
@@ -224,6 +348,7 @@ function refreshData() {
     document.getElementById('tableContainer').style.display = 'none';
     document.getElementById('errorState').style.display = 'none';
     allData = {};
+    loadTrackedFromSheet();
     loadAllSheets();
 }
 
@@ -241,14 +366,17 @@ function onAllLoaded() {
     
     document.getElementById('tableContainer').style.display = 'block';
     updateTotalCount();
+    updateTrackedCount();
     renderSheetNav();
     selectSheet('MSK');
 }
 
+// ============ CSV PARSING ============
 function parseCSV(text) {
     var lines = text.split('\n');
     var data = [];
     var currentSubcat = '';
+    var lastItem = null;
     
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
@@ -258,8 +386,7 @@ function parseCSV(text) {
         var nonEmpty = row.filter(function(v) { return v && v.trim(); });
         if (nonEmpty.length === 0) continue;
         
-        // Subcategory header
-        if (nonEmpty.length === 1 && !/^[A-Z]?\d{5,7}$/.test(nonEmpty[0])) {
+        if (nonEmpty.length === 1 && !/^[A-Z]?\d{5,7}$/.test(nonEmpty[0]) && nonEmpty[0].length < 30) {
             currentSubcat = nonEmpty[0];
             continue;
         }
@@ -280,7 +407,13 @@ function parseCSV(text) {
         }
         
         item.finding = findings.join(' | ');
-        if (item.id || item.finding) data.push(item);
+        
+        if (item.id) {
+            data.push(item);
+            lastItem = item;
+        } else if (lastItem && item.finding) {
+            lastItem.finding = lastItem.finding + ' | ' + item.finding;
+        }
     }
     return data;
 }
@@ -297,6 +430,7 @@ function parseCSVLine(line) {
     return result;
 }
 
+// ============ NAVIGATION ============
 function renderSheetNav() {
     var html = '';
     SHEETS.forEach(function(sheet) {
@@ -326,15 +460,16 @@ function renderSubcatNav() {
     if (keys.length === 0) { document.getElementById('subcatSection').style.display = 'none'; return; }
     
     document.getElementById('subcatSection').style.display = 'block';
-    var html = '<div class="subcat-item ' + (currentSubcat === '' ? 'active' : '') + '" onclick="selectSubcat(\'\')">全部</div>';
+    var html = '<span class="subcat-item ' + (currentSubcat === '' ? 'active' : '') + '" onclick="selectSubcat(\'\')">全部</span>';
     keys.forEach(function(key) {
-        html += '<div class="subcat-item ' + (currentSubcat === key ? 'active' : '') + '" onclick="selectSubcat(\'' + key.replace(/'/g, "\\'") + '\')"><span>' + key + '</span><span>' + subcats[key] + '</span></div>';
+        html += '<span class="subcat-item ' + (currentSubcat === key ? 'active' : '') + '" onclick="selectSubcat(\'' + key.replace(/'/g, "\\'") + '\')">' + key + ' (' + subcats[key] + ')</span>';
     });
     document.getElementById('subcatNav').innerHTML = html;
 }
 
 function selectSubcat(subcat) { currentSubcat = subcat; renderSubcatNav(); renderTable(); }
 
+// ============ TAGS ============
 function renderTagCloud() {
     var data = allData[currentSheet] || [];
     var tags = {};
@@ -361,11 +496,13 @@ function renderTagCloud() {
 
 function selectTag(tag) { currentTag = currentTag === tag ? '' : tag; renderTagCloud(); renderTable(); }
 
+// ============ TABLE ============
 function getFilteredData() {
     var data = allData[currentSheet] || [];
     return data.filter(function(item) {
         if (currentSubcat && item.subcat !== currentSubcat) return false;
         if (currentTag && item.finding.toLowerCase().indexOf(currentTag) === -1) return false;
+        if (showTrackedOnly && !isTracked(item.id)) return false;
         if (searchTerm) {
             var text = (item.id + ' ' + item.subcat + ' ' + item.age + ' ' + item.modality + ' ' + item.finding).toLowerCase();
             if (text.indexOf(searchTerm) === -1) return false;
@@ -408,7 +545,20 @@ function renderTable() {
             var regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
             finding = finding.replace(regex, '<span class="highlight">$1</span>');
         }
-        html += '<tr><td class="cell-subcat">' + (item.subcat || '-') + '</td><td class="cell-id">' + (item.id || '-') + '</td><td class="cell-age">' + (item.age || '-') + '</td><td class="cell-modality">' + (item.modality || '-') + '</td><td class="cell-date">' + (item.date || '-') + '</td><td class="cell-finding">' + (finding || '-') + '</td></tr>';
+        var tracked = isTracked(item.id);
+        var rowClass = tracked ? 'tracked' : '';
+        var btnClass = tracked ? 'active' : '';
+        var btnIcon = tracked ? '⏳' : '○';
+        
+        html += '<tr class="' + rowClass + '">';
+        html += '<td class="cell-track"><button class="track-btn ' + btnClass + '" onclick="toggleTracked(\'' + item.id + '\')" title="點擊追蹤/取消追蹤">' + btnIcon + '</button></td>';
+        html += '<td class="cell-subcat">' + (item.subcat || '-') + '</td>';
+        html += '<td class="cell-id">' + (item.id || '-') + '</td>';
+        html += '<td class="cell-age">' + (item.age || '-') + '</td>';
+        html += '<td class="cell-modality">' + (item.modality || '-') + '</td>';
+        html += '<td class="cell-date">' + (item.date || '-') + '</td>';
+        html += '<td class="cell-finding">' + (finding || '-') + '</td>';
+        html += '</tr>';
     });
     document.getElementById('tableBody').innerHTML = html;
 }
