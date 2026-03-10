@@ -85,7 +85,8 @@
         .cell-age { color: #aaa; white-space: nowrap; }
         .cell-modality { color: #64b5f6; font-size: 12px; }
         .cell-date { color: #888; font-size: 12px; white-space: nowrap; }
-        .cell-finding { max-width: 450px; line-height: 1.5; }
+        .cell-finding { max-width: 400px; line-height: 1.5; }
+        .cell-note { max-width: 200px; font-size: 12px; color: #f0ad4e; line-height: 1.4; }
         .highlight { background: rgba(255,235,59,0.3); padding: 0 3px; border-radius: 3px; }
         
         .loading, .empty, .error { text-align: center; padding: 60px 20px; color: #666; }
@@ -158,6 +159,7 @@
                                 <th onclick="sortBy('modality')">Modality</th>
                                 <th onclick="sortBy('date')">Date</th>
                                 <th onclick="sortBy('finding')">Finding</th>
+                                <th onclick="sortBy('note')">Note</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
@@ -174,9 +176,7 @@
 
 <script>
 // ============ CONFIG ============
-var API_KEY = 'AIzaSyBoO5ZJql0WkBbgLF4DY_EjRV5Dp2Zx7Qs';
-var SPREADSHEET_ID = '1lmW4oGxpf3-W51tB2f2LXeZXadYAcnSdVPaiOiOHni8';
-var TRACKED_SHEET = 'Tracked';  // 追蹤名單存在這個分頁
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyyMIxWpe7snVeFJbfDs58nI7h46MCiODs_FLD21p6i-h--HUKng2JKlcBSeC860uGg/exec';
 
 var PUBLISHED_ID = '2PACX-1vSF1YW3PjcvIZrNx39H-n6X3IGgfrcdIZCTJ2E5PRV-IhYj-I66V13A4fI_DWuJvp2bF2vOImWc4mrF';
 
@@ -232,16 +232,16 @@ function setSyncStatus(status) {
 // ============ TRACKED IDS (Google Sheets) ============
 function loadTrackedFromSheet() {
     setSyncStatus('syncing');
-    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SPREADSHEET_ID + '/values/' + TRACKED_SHEET + '!A:A?key=' + API_KEY;
+    var url = APPS_SCRIPT_URL + '?action=get';
     
     fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.values && data.values.length > 0) {
-                trackedIds = data.values.map(function(row) { return row[0]; }).filter(function(id) { return id; });
+            if (data.success && data.ids) {
+                trackedIds = data.ids;
                 setSyncStatus('synced');
             } else {
-                // 分頁是空的或不存在，使用初始名單並寫入
+                // 使用初始名單
                 trackedIds = INITIAL_TRACKED.slice();
                 saveTrackedToSheet();
             }
@@ -250,7 +250,6 @@ function loadTrackedFromSheet() {
         })
         .catch(function(err) {
             console.error('Error loading tracked:', err);
-            // 嘗試建立分頁或使用本地
             trackedIds = INITIAL_TRACKED.slice();
             setSyncStatus('error');
             updateTrackedCount();
@@ -259,28 +258,22 @@ function loadTrackedFromSheet() {
 
 function saveTrackedToSheet() {
     setSyncStatus('syncing');
-    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SPREADSHEET_ID + '/values/' + TRACKED_SHEET + '!A:A?valueInputOption=RAW&key=' + API_KEY;
+    var url = APPS_SCRIPT_URL + '?action=save&ids=' + encodeURIComponent(JSON.stringify(trackedIds));
     
-    var values = trackedIds.map(function(id) { return [id]; });
-    
-    fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: values })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.error) {
-            console.error('Save error:', data.error);
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                setSyncStatus('synced');
+            } else {
+                console.error('Save error:', data.error);
+                setSyncStatus('error');
+            }
+        })
+        .catch(function(err) {
+            console.error('Save error:', err);
             setSyncStatus('error');
-        } else {
-            setSyncStatus('synced');
-        }
-    })
-    .catch(function(err) {
-        console.error('Save error:', err);
-        setSyncStatus('error');
-    });
+        });
 }
 
 function isTracked(id) {
@@ -386,13 +379,15 @@ function parseCSV(text) {
         var nonEmpty = row.filter(function(v) { return v && v.trim(); });
         if (nonEmpty.length === 0) continue;
         
-        if (nonEmpty.length === 1 && !/^[A-Z]?\d{5,7}$/.test(nonEmpty[0]) && nonEmpty[0].length < 30) {
+        // 分類標題：單一欄位、不是ID、長度短、不含中文長句
+        if (nonEmpty.length === 1 && !/^[A-Z]?\d{5,7}$/.test(nonEmpty[0]) && nonEmpty[0].length < 20 && !/[\u4e00-\u9fff]{4,}/.test(nonEmpty[0])) {
             currentSubcat = nonEmpty[0];
             continue;
         }
         
-        var item = { subcat: currentSubcat, id: '', age: '', modality: '', date: '', finding: '' };
+        var item = { subcat: currentSubcat, id: '', age: '', modality: '', date: '', finding: '', note: '' };
         var findings = [];
+        var notes = [];
         
         for (var j = 0; j < row.length; j++) {
             var val = row[j] ? row[j].trim() : '';
@@ -403,16 +398,20 @@ function parseCSV(text) {
             else if (!item.age && /^[男女]\d{1,3}$/.test(val)) item.age = val;
             else if (!item.date && /^\d{4}-\d{2}-\d{2}/.test(val)) item.date = val.substring(0, 10);
             else if (!item.modality && val.length < 25 && /^(MR|CT|X-?ray|Angio|US|PET|.*[Ss]pine)/i.test(val)) item.modality = val;
+            // 中文長句（4個以上中文字）視為註記
+            else if (/[\u4e00-\u9fff]{4,}/.test(val)) notes.push(val);
             else findings.push(val);
         }
         
         item.finding = findings.join(' | ');
+        item.note = notes.join(' | ');
         
         if (item.id) {
             data.push(item);
             lastItem = item;
-        } else if (lastItem && item.finding) {
-            lastItem.finding = lastItem.finding + ' | ' + item.finding;
+        } else if (lastItem && (item.finding || item.note)) {
+            if (item.finding) lastItem.finding = lastItem.finding + ' | ' + item.finding;
+            if (item.note) lastItem.note = lastItem.note ? lastItem.note + ' | ' + item.note : item.note;
         }
     }
     return data;
@@ -433,6 +432,12 @@ function parseCSVLine(line) {
 // ============ NAVIGATION ============
 function renderSheetNav() {
     var html = '';
+    // 加入「全部」選項
+    var allCount = 0;
+    Object.keys(allData).forEach(function(key) { allCount += allData[key].length; });
+    var allActive = currentSheet === 'ALL' ? 'active' : '';
+    html += '<div class="nav-item ' + allActive + '" onclick="selectSheet(\'ALL\')"><span>📊 全部</span><span class="nav-count">' + allCount + '</span></div>';
+    
     SHEETS.forEach(function(sheet) {
         var count = allData[sheet.name] ? allData[sheet.name].length : 0;
         var active = sheet.name === currentSheet ? 'active' : '';
@@ -452,7 +457,15 @@ function selectSheet(name) {
 }
 
 function renderSubcatNav() {
-    var data = allData[currentSheet] || [];
+    var data = [];
+    if (currentSheet === 'ALL') {
+        SHEETS.forEach(function(sheet) {
+            data = data.concat(allData[sheet.name] || []);
+        });
+    } else {
+        data = allData[currentSheet] || [];
+    }
+    
     var subcats = {};
     data.forEach(function(item) { if (item.subcat) subcats[item.subcat] = (subcats[item.subcat] || 0) + 1; });
     
@@ -471,7 +484,15 @@ function selectSubcat(subcat) { currentSubcat = subcat; renderSubcatNav(); rende
 
 // ============ TAGS ============
 function renderTagCloud() {
-    var data = allData[currentSheet] || [];
+    var data = [];
+    if (currentSheet === 'ALL') {
+        SHEETS.forEach(function(sheet) {
+            data = data.concat(allData[sheet.name] || []);
+        });
+    } else {
+        data = allData[currentSheet] || [];
+    }
+    
     var tags = {};
     data.forEach(function(item) {
         if (!item.finding) return;
@@ -498,7 +519,22 @@ function selectTag(tag) { currentTag = currentTag === tag ? '' : tag; renderTagC
 
 // ============ TABLE ============
 function getFilteredData() {
-    var data = allData[currentSheet] || [];
+    var data = [];
+    
+    // 如果選「全部」，合併所有分頁資料
+    if (currentSheet === 'ALL') {
+        SHEETS.forEach(function(sheet) {
+            var sheetData = allData[sheet.name] || [];
+            sheetData.forEach(function(item) {
+                var newItem = Object.assign({}, item);
+                newItem.sheetName = sheet.name;  // 加上來源分頁
+                data.push(newItem);
+            });
+        });
+    } else {
+        data = allData[currentSheet] || [];
+    }
+    
     return data.filter(function(item) {
         if (currentSubcat && item.subcat !== currentSubcat) return false;
         if (currentTag && item.finding.toLowerCase().indexOf(currentTag) === -1) return false;
@@ -558,6 +594,7 @@ function renderTable() {
         html += '<td class="cell-modality">' + (item.modality || '-') + '</td>';
         html += '<td class="cell-date">' + (item.date || '-') + '</td>';
         html += '<td class="cell-finding">' + (finding || '-') + '</td>';
+        html += '<td class="cell-note">' + (item.note || '-') + '</td>';
         html += '</tr>';
     });
     document.getElementById('tableBody').innerHTML = html;
