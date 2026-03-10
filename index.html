@@ -234,34 +234,50 @@ function loadTrackedFromSheet() {
     setSyncStatus('syncing');
     var url = APPS_SCRIPT_URL + '?action=get';
     
-    fetch(url)
-        .then(function(r) { return r.json(); })
+    fetch(url, { redirect: 'follow' })
+        .then(function(r) { 
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json(); 
+        })
         .then(function(data) {
-            if (data.success && data.ids) {
+            if (data.success && data.ids && data.ids.length > 0) {
                 trackedIds = data.ids;
-                setSyncStatus('synced');
             } else {
-                // 使用初始名單
+                // 空的，使用初始名單並寫入
                 trackedIds = INITIAL_TRACKED.slice();
                 saveTrackedToSheet();
             }
+            setSyncStatus('synced');
             updateTrackedCount();
             renderTable();
         })
         .catch(function(err) {
             console.error('Error loading tracked:', err);
-            trackedIds = INITIAL_TRACKED.slice();
+            // 使用 localStorage 備援
+            var saved = localStorage.getItem('caseTrackerTracked');
+            if (saved) {
+                trackedIds = JSON.parse(saved);
+            } else {
+                trackedIds = INITIAL_TRACKED.slice();
+            }
             setSyncStatus('error');
             updateTrackedCount();
+            renderTable();
         });
 }
 
 function saveTrackedToSheet() {
+    // 先存到 localStorage 備援
+    localStorage.setItem('caseTrackerTracked', JSON.stringify(trackedIds));
+    
     setSyncStatus('syncing');
     var url = APPS_SCRIPT_URL + '?action=save&ids=' + encodeURIComponent(JSON.stringify(trackedIds));
     
-    fetch(url)
-        .then(function(r) { return r.json(); })
+    fetch(url, { redirect: 'follow' })
+        .then(function(r) { 
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json(); 
+        })
         .then(function(data) {
             if (data.success) {
                 setSyncStatus('synced');
@@ -302,6 +318,11 @@ function toggleTrackFilter() {
     if (showTrackedOnly) {
         btn.classList.add('active');
         btn.textContent = '⏳ 顯示全部';
+        // 自動切換到「全部」分頁，顯示所有追蹤
+        currentSheet = 'ALL';
+        renderSheetNav();
+        renderSubcatNav();
+        renderTagCloud();
     } else {
         btn.classList.remove('active');
         btn.textContent = '⏳ 只看追蹤';
